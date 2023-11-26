@@ -2,7 +2,7 @@
 
 ## Overview
 
-`runfox.py` is a Python script designed to facilitate launching Mozilla Firefox with specific profiles from the command line. It provides a convenient way to interact with Firefox profiles stored in a designated directory.
+`runfox.py` is a Python script designed to facilitate launching Mozilla Firefox with specific profiles from the command line. It provides a convenient way to interact with configured firefox profiles. Profiles are presented as a sorted list which isn't the default behavior for firefox Profile Manager.
 
 ## Features
 
