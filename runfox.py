@@ -4,15 +4,11 @@ import os
 import subprocess
 import argparse
 
-# create a list of these when reading firefox directory
 class PROFILE:
     def __init__(self, path, profile):
         self.path = path
         self.profile = profile
 
-
-# read all firefox profiles from passed path (usually /$HOME/.mozilla/firefox) but could 
-# be another user if this is launched with sudo -i -u USER /usr/local/bin/runfox.py -d /home/USER/.mozilla/firefox
 def read_profiles(path):
     profile_list = []
     for entry in os.listdir(path):
@@ -24,7 +20,6 @@ def read_profiles(path):
     return profile_list
 
 
-# fork a firefox using the given profile. prompt to start if not selected from the list
 def run_profile(plist, profile, arg_profile):
     result = 0
 
@@ -46,39 +41,46 @@ def run_profile(plist, profile, arg_profile):
     return False
 
 
-# present a list of profiles to select from using zenity - why is tkinter so bugly?
-def show_profile_list(profiles):
+def show_profile_list(args,profiles):
     sorted_profiles = sorted(profiles, key=lambda p: p.profile)
     profile_names = [p.profile for p in sorted_profiles]
+    geo=""
+    user = os.getenv('LOGNAME')
 
-    zenity_command = f'zenity --list --title="Firefox Profiles" --column="Profile Name" {" ".join(profile_names)}'
+    if args.xwidth:
+        geo=f'--width={args.xwidth}'
+    if args.yheight:
+        geo=f'{geo} --height={args.yheight}'
+
+    zenity_command = f'zenity --list {geo} --title="Firefox Profiles for {user}" --column="Profile Name" {" ".join(profile_names)}'
     result = subprocess.check_output(zenity_command, shell=True, text=True)
     return result.strip() if result else None
 
 
-# start here
 def main():
     parser = argparse.ArgumentParser(description='Launch Firefox with a specific profile.')
-    parser.add_argument('-d', '--directory', help='Path to the Firefox directory', required=True)
+    parser.add_argument('-d', '--directory', help='Path to the Firefox directory')
     parser.add_argument('-p', '--profile', help='Profile to launch')
+    parser.add_argument('-y', '--yheight', help='height of window')
+    parser.add_argument('-x', '--xwidth', help='width of window')
     args = parser.parse_args()
 
-    # get what was specified from cli
     firefox_directory = args.directory
     profile_name = args.profile
 
-    # can't find the path specified
+    # use default $HOME/.mozilla/firefox if -d is empty
+    if not firefox_directory:
+        firefox_directory = os.path.join(os.path.expanduser("~"), ".mozilla", "firefox")
+
     if not os.path.isdir(firefox_directory):
         print(f"Error: Directory '{firefox_directory}' does not exist.")
         return
 
-    # read profiles
     profiles = read_profiles(firefox_directory)
 
-    # if no profile_name specified to run, give a list of them
     if not profile_name:
         # If no profile is specified, show a list of profiles using Zenity
-        selected_profile = show_profile_list(profiles)
+        selected_profile = show_profile_list(args,profiles)
 
         if not selected_profile:
             print("User canceled.")
@@ -86,7 +88,6 @@ def main():
 
         profile_name = selected_profile
 
-    # run firefox with selected profile, or cli profile
     result = run_profile(profiles, profile_name, args.profile)
 
     if not result:
